@@ -12,7 +12,7 @@ from typing import Union
 
 from pokeapi.core.conf import api_settings, app_settings
 from pokeapi.dependencies import get_request_client, loguru_sinks
-from pokeapi.domain.api.responses import APIAllPokemon
+from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
 from pokeapi.utils.path_utils import ensure_dirs_exist, read_from_file
 
 import diskcache
@@ -217,3 +217,9 @@ if __name__ == "__main__":
     all_pokemon: APIAllPokemon = APIAllPokemon()
     all_pokemon.get_pokemon(use_cache=True, cache=req_cache)
     log.debug(all_pokemon.pokemon_list)
+
+    rand_index = random.randint(0, len(all_pokemon.pokemon_list))
+    sample_pokemon: APIPokemonResource = all_pokemon.pokemon_list[rand_index]
+    log.debug(f"Sample Pokemon: {sample_pokemon}")
+    sample_pokemon.get(use_cache=True, cache=req_cache)
+    log.debug(f"Sample Pokemon response ({type(sample_pokemon.response)})")

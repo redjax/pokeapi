@@ -19,6 +19,7 @@ from red_utils.ext.msgpack_utils import msgpack_serialize
 class APIPokemonResource(BaseModel):
     name: str | None = Field(default=None)
     request_url: str | None = Field(default=None, alias="url")
+    response: dict = Field(default=None)
 
     @property
     def serialized(self) -> bytes:
@@ -31,6 +32,86 @@ class APIPokemonResource(BaseModel):
             raise Exception(
                 f"Unhandled exception serializing APIPokemonResponse. Details: {exc}"
             )
+
+    def get(
+        self,
+        use_cache: bool = False,
+        cache: diskcache.Cache = None,
+    ) -> dict[str, str]:
+        if cache is None:
+            if use_cache:
+                log.error(
+                    ValueError(
+                        "use_cache is True, but no cache was passed. Disabling use_cache"
+                    )
+                )
+
+                use_cache = False
+
+        cache_key: str = self.name
+
+        client = httpx.Client()
+
+        if not use_cache:
+            log.info(f"Cache is disabled, making live request.")
+            with client as c:
+                res = c.get(self.request_url)
+
+            log.debug(f"Response: [{res.status_code}: {res.reason_phrase}]")
+
+            if res.status_code == 200:
+                log.info(f"Success requesting all Pokemon")
+                content = json.loads(res.content.decode("utf-8"))
+
+                self.response = content
+
+                return content
+
+            else:
+                log.warning(
+                    f"Non-200 status code in response: [{res.status_code}: {res.reason_phrase}] {res.text}"
+                )
+
+                return None
+
+        else:
+            log.info(f"Cache is enabled, attempting cached request")
+
+            if not check_cache_key_exists(cache=cache, key=cache_key):
+                log.warning("Did not find response in cache. Making live request.")
+
+                with client as c:
+                    res = c.get(self.request_url)
+
+                log.debug(f"Response: [{res.status_code}: {res.reason_phrase}]")
+
+                if res.status_code == 200:
+                    content = json.loads(res.content.decode("utf-8"))
+
+                    self.response = content
+
+                    set_val(
+                        cache=cache,
+                        key=cache_key,
+                        val=content,
+                    )
+
+                    return content
+
+                else:
+                    log.info(
+                        f"Non-200 success response: [{res.status_code}: {res.reason_phrase}]: {res.text}"
+                    )
+
+                    return None
+
+            else:
+                log.info("Found response in cache. Loading from cache.")
+
+                res: dict = get_val(cache=cache, key=cache_key)
+                self.response = res
+
+                return res
 
 
 class APIAllPokemon(BaseModel):
