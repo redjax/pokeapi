@@ -12,12 +12,14 @@ from typing import Union
 
 from pokeapi.core.conf import api_settings, app_settings
 from pokeapi.dependencies import get_request_client, loguru_sinks
+from pokeapi.domain.api.responses import APIAllPokemon
 from pokeapi.utils.path_utils import ensure_dirs_exist, read_from_file
 
 import diskcache
 import httpx
 
 from loguru import logger as log
+from red_utils.ext import msgpack_utils
 from red_utils.ext.diskcache_utils import (
     check_cache_key_exists,
     default_cache_conf,
@@ -27,9 +29,6 @@ from red_utils.ext.diskcache_utils import (
     set_val,
 )
 from red_utils.ext.loguru_utils import init_logger
-from red_utils.ext import msgpack_utils
-
-from pokeapi.domain.api.responses import APIPokemonResource, APIAllPokemon
 
 ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
 pokemon_names_file: Path = Path(f"{app_settings.data_dir}/list_all_pokemon.txt")

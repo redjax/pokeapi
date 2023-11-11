@@ -1,18 +1,19 @@
-from pydantic import BaseModel, Field, field_validator, ValidationError
-
-from typing import Union
-from pathlib import Path
-
-from loguru import logger as log
-
-from red_utils.ext.msgpack_utils import msgpack_serialize
-from red_utils.ext.diskcache_utils import get_val, set_val, check_cache_key_exists
+from __future__ import annotations
 
 import json
-import httpx
-import diskcache
+
+from pathlib import Path
+from typing import Union
 
 from pokeapi.core.conf import api_settings
+
+import diskcache
+import httpx
+
+from loguru import logger as log
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from red_utils.ext.diskcache_utils import check_cache_key_exists, get_val, set_val
+from red_utils.ext.msgpack_utils import msgpack_serialize
 
 
 class APIPokemonResource(BaseModel):

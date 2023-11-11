@@ -1,3 +1,4 @@
-from . import schemas
+from __future__ import annotations
 
-from .schemas import APIPokemonResource, APIAllPokemon
+from . import schemas
+from .schemas import APIAllPokemon, APIPokemonResource
