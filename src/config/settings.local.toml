@@ -1,0 +1,14 @@
+[default]
+
+env = "prod"
+container_env = false
+
+api_base_url = "https://pokeapi.co/api/v2"
+log_level = "INFO"
+
+[dev]
+
+env = "dev"
+log_level = "DEBUG"
+
+[prod]
