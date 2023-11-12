@@ -14,6 +14,7 @@ import diskcache
 
 from red_utils.ext.diskcache_utils import check_cache_key_exists, get_val, set_val
 from red_utils.ext.loguru_utils import init_logger
+from red_utils.ext.context_managers.cli_spinners import SimpleSpinner
 
 from pokeapi.celery_tasks import refresh_all_pokemon, refresh_single_pokemon
 from pokeapi.celeryapp import app as celery_app
@@ -24,6 +25,9 @@ import random
 from dynaconf import settings
 
 import time
+
+CONTINUUOUS: bool = True
+LOOP_SLEEP: int = 3600
 
 
 def check_task(task_id: str | None = None) -> AsyncResult:
@@ -44,9 +48,10 @@ def run_all_pokemon_refresh(
     log.info("Refreshing cache of all Pokemon resources")
 
     try:
-        all_pokemon_res: AsyncResult = refresh_all_pokemon.delay(
-            all_pokemon_dict=all_pokemon.model_dump()
-        )
+        with SimpleSpinner("Refreshing all Pokemon resource objects in cache... "):
+            all_pokemon_res: AsyncResult = refresh_all_pokemon.delay(
+                all_pokemon_dict=all_pokemon.model_dump()
+            )
     except Exception as exc:
         msg = Exception(
             f"Unhandled exception running Celery task, refresh_all_pokemon(). Details: {exc}"
@@ -70,10 +75,10 @@ def run_all_pokemon_refresh(
             )
             break
         else:
-            log.info(
+            with SimpleSpinner(
                 f"Task [{all_pokemon_res.id}] is still in progress. Waiting for {task_sleep} second(s)..."
-            )
-            time.sleep(task_sleep)
+            ):
+                time.sleep(task_sleep)
 
 
 def loop_refresh_pokemon_resources(all_pokemon: APIAllPokemon = None):
@@ -82,18 +87,19 @@ def loop_refresh_pokemon_resources(all_pokemon: APIAllPokemon = None):
 
     refresh_pokemon_tasks: list[AsyncResult] = []
 
-    for p in all_pokemon_list:
-        try:
-            refresh_pokemon_res: AsyncResult = refresh_single_pokemon.delay(
-                pokemon_dict=p.model_dump()
-            )
-        except Exception as exc:
-            msg = Exception(
-                f"Unhandled exception running Celery task, refresh_all_pokemon(). Details: {exc}"
-            )
-            log.error(msg)
+    with SimpleSpinner("Refreshing cached Pokemon resources"):
+        for p in all_pokemon_list:
+            try:
+                refresh_pokemon_res: AsyncResult = refresh_single_pokemon.delay(
+                    pokemon_dict=p.model_dump()
+                )
+            except Exception as exc:
+                msg = Exception(
+                    f"Unhandled exception running Celery task, refresh_all_pokemon(). Details: {exc}"
+                )
+                log.error(msg)
 
-        refresh_pokemon_tasks.append(refresh_pokemon_res)
+            refresh_pokemon_tasks.append(refresh_pokemon_res)
 
     return_pokemon: list[APIPokemonResource] = []
 
@@ -121,10 +127,10 @@ def loop_refresh_pokemon_resources(all_pokemon: APIAllPokemon = None):
                 )
                 break
             else:
-                log.info(
+                with SimpleSpinner(
                     f"Task [{refresh_task.id}] is still in progress. Waiting for 5 second(s)..."
-                )
-                time.sleep(5)
+                ):
+                    time.sleep(5)
 
     return return_pokemon
 
@@ -138,14 +144,60 @@ if __name__ == "__main__":
 
     log.info("Starting background cache refresh tasks")
 
-    all_pokemon: APIAllPokemon = run_all_pokemon_refresh(task_sleep=5)
-    refreshed_pokemon: list[APIPokemonResource] = loop_refresh_pokemon_resources(
-        all_pokemon=all_pokemon
-    )
-    log.debug(f"Refreshed [{len(refreshed_pokemon)}]")
+    if CONTINUUOUS:
+        loop: bool = True
+        loop_count: int = 0
 
-    if len(refreshed_pokemon) > 0:
-        rand_index: int = random.randint(0, len(refreshed_pokemon) - 1)
-        refreshed: APIPokemonResource = refreshed_pokemon[rand_index]
+        while loop:
+            log.info(f"[Loop {loop_count}] Starting background cache refresh tasks")
 
-        log.debug(f"(Sample) Refreshed Pokemon [{refreshed.name}]")
+            try:
+                all_pokemon: APIAllPokemon = run_all_pokemon_refresh(task_sleep=5)
+            except Exception as exc:
+                log.error(
+                    Exception(f"Unhandled exception refreshing all pokemon: {exc}")
+                )
+
+                loop = False
+                break
+
+            try:
+                refreshed_pokemon: list[
+                    APIPokemonResource
+                ] = loop_refresh_pokemon_resources(all_pokemon=all_pokemon)
+            except Exception as exc:
+                log.error(
+                    Exception(
+                        f"Unhandled exception refreshing individual Pokemon. Details: {exc}"
+                    )
+                )
+                loop = False
+                break
+
+            log.debug(f"Refreshed [{len(refreshed_pokemon)}]")
+
+            if len(refreshed_pokemon) > 0:
+                rand_index: int = random.randint(0, len(refreshed_pokemon) - 1)
+                refreshed: APIPokemonResource = refreshed_pokemon[rand_index]
+
+                log.debug(f"(Sample) Refreshed Pokemon [{refreshed.name}]")
+
+            log.info("Finished refreshing cache.")
+            with SimpleSpinner(
+                f"[Loop {loop_count}] Finished refreshing cache. Sleeping for {LOOP_SLEEP} second(s)..."
+            ):
+                time.sleep(LOOP_SLEEP)
+                loop_count += 1
+
+    else:
+        all_pokemon: APIAllPokemon = run_all_pokemon_refresh(task_sleep=5)
+        refreshed_pokemon: list[APIPokemonResource] = loop_refresh_pokemon_resources(
+            all_pokemon=all_pokemon
+        )
+        log.debug(f"Refreshed [{len(refreshed_pokemon)}]")
+
+        if len(refreshed_pokemon) > 0:
+            rand_index: int = random.randint(0, len(refreshed_pokemon) - 1)
+            refreshed: APIPokemonResource = refreshed_pokemon[rand_index]
+
+            log.debug(f"(Sample) Refreshed Pokemon [{refreshed.name}]")

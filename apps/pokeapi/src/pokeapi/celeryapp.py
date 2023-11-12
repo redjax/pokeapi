@@ -7,7 +7,8 @@ from celery import Celery
 
 app = Celery(
     "pokeapi",
-    broker=f"pyamqp://{celery_settings.rabbitmq_user}:{celery_settings.rabbitmq_password}@{celery_settings.rabbitmq_host}//",
+    # broker=f"pyamqp://{celery_settings.rabbitmq_user}:{celery_settings.rabbitmq_password}@{celery_settings.rabbitmq_host}:{celery_settings.rabbitmq_port}//",
+    broker=f"amqp://{celery_settings.rabbitmq_user}:{celery_settings.rabbitmq_password}@rabbitmq",
     backend=f"redis://{celery_settings.redis_host}:{celery_settings.redis_port}",
     include=["pokeapi.celery_tasks"],
 )
