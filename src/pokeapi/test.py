@@ -14,6 +14,7 @@ from pokeapi.core.conf import api_settings, app_settings
 from pokeapi.dependencies import loguru_sinks, init_cache
 from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
 from pokeapi.utils.path_utils import ensure_dirs_exist
+from pokeapi.utils.pokemon_utils import cache_all_pokemon
 
 from loguru import logger as log
 from red_utils.ext import msgpack_utils
@@ -29,29 +30,6 @@ from red_utils.ext.msgpack_utils import (
     msgpack_deserialize,
     msgpack_deserialize_file,
 )
-
-
-def cache_all_pokemon(
-    pokemon_list: list[APIPokemonResource] = None, use_cache: bool = False, cache=None
-) -> None:
-    if pokemon_list is None:
-        raise ValueError("Missing list of APIPokemonResource objects.")
-
-    if cache is not None:
-        use_cache = True
-    else:
-        use_cache = False
-
-    for pokemon in pokemon_list:
-        log.debug(f"Requesting Pokemon [{pokemon.name}] from: {pokemon.request_url}")
-        try:
-            pokemon.get(use_cache=use_cache, cache=cache)
-        except Exception as exc:
-            log.error(
-                Exception(
-                    f"Unhandled exception requesting Pokemon [{pokemon.name}]. Details: {exc}"
-                )
-            )
 
 
 if __name__ == "__main__":
