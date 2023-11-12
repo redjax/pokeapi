@@ -6,9 +6,29 @@ container_env = false
 api_base_url = "https://pokeapi.co/api/v2"
 log_level = "INFO"
 
+##########
+# Celery #
+##########
+
+rabbitmq_host = "localhost"
+rabbitmq_port = 5672
+rabbitmq_user = "guest"
+## Set password in config/.secrets.toml
+# rabbitmq_pass = ""
+
 [dev]
 
 env = "dev"
 log_level = "DEBUG"
+
+##########
+# Celery #
+##########
+
+rabbitmq_host = "localhost"
+rabbitmq_port = 5672
+rabbitmq_user = "rabbitmq"
+## Set password in config/.secrets.toml
+# rabbitmq_pass = ""
 
 [prod]
