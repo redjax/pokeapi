@@ -1,0 +1,181 @@
+version: "3.8"
+
+networks:
+  pokeapi_net:
+
+volumes:
+  redis_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+services:
+  # test:
+  #   container_name: pokeapi-test
+  #   restart: unless-stopped
+  #   build:
+  #     context: apps/pokeapi
+  #     dockerfile: Dockerfile
+  #     target: ${ENV:-prod}
+  #   working_dir: /app
+  #   command: python pokeapi/test.py
+  #   volumes:
+  #     - ./apps/pokeapi/src:/app
+  #   environment:
+  #     ENV: ${ENV:-prod}
+  #     CONTAINER_ENV: true
+  #     API_BASE_URL: ${API_BASE_URL:-https://pokeapi.co/api/v2}
+  #     LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      
+  #     RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+  #     RABBITMQ_USER: ${RABBITMQ_USER:-rabbitmq}
+  #     RABBITMQ_PASS: ${RABBITMQ_PASS:-rabbitmq}
+  #     RABBITMQ_PORT: ${RABBITMQ_AMPQ_PORT:-5672}
+
+  #     REDIS_HOST: ${REDIS_HOST:-redis}
+  #     REDIS_PORT: ${REDIS_PORT:-6379}
+  #   networks:
+  #     - pokeapi_net
+
+  refresh-job:
+    container_name: pokeapi-refresh-job
+    restart: unless-stopped
+    build:
+      context: apps/pokeapi
+      dockerfile: Dockerfile
+      target: ${ENV:-prod}
+    working_dir: /app
+    command: python pokeapi/refresh_caches.py
+    volumes:
+      - ./apps/pokeapi/src:/app
+    environment:
+      ENV: ${ENV:-prod}
+      CONTAINER_ENV: true
+      API_BASE_URL: ${API_BASE_URL:-https://pokeapi.co/api/v2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_USER: ${RABBITMQ_USER:-rabbitmq}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_AMPQ_PORT:-5672}
+
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on:
+      - celery-worker
+      - rabbitmq
+      - redis
+    networks:
+      - pokeapi_net
+
+  celery-worker:
+    container_name: pokeapi-celery-worker
+    restart: unless-stopped
+    build:
+      context: apps/pokeapi
+      dockerfile: Dockerfile
+      target: ${ENV:-prod}
+    working_dir: /app
+    command: celery -A pokeapi.celeryapp worker --loglevel=debug --uid=0 --gid=0
+    volumes:
+      - ./apps/pokeapi/src:/app
+    environment:
+      ENV: ${ENV:-prod}
+      CONTAINER_ENV: true
+      API_BASE_URL: ${API_BASE_URL:-https://pokeapi.co/api/v2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      
+      RABBITMQ_USER: ${RABBITMQ_USER:-rabbitmq}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_AMPQ_PORT:-5672}
+
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - pokeapi_net
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: pokeapi-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rabbitmq}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-rabbitmq}
+    # ports:
+      ## AMQP protocol
+      # - ${RABBITMQ_AMPQ_PORT:-5672}:5672
+      # - ${RABBITMQ_HTTP_PORT:-15672}:15672
+    volumes:
+      - ${RABBITMQ_DATA_DIR:-./containers/rabbitmq_redis/data/rabbitmq}:/var/lib/rabbitmq
+      - ${RABBITMQ_LOGS_DIR:-./containers/rabbitmq_redis/logs/rabbitmq}:/var/log/rabbitmq
+      - ./containers/rabbitmq_redis/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+    networks:
+      - pokeapi_net
+
+  redis:
+    image: redis
+    container_name: pokeapi-redis
+    restart: unless-stopped
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - ${REDIS_CACHE_DIR:-redis_cache}:/data
+    # ports:
+    #   - ${REDIS_PORT:-6379}:6379
+    networks:
+      - pokeapi_net
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: pokeapi-redis-commander
+    hostname: redis-commander
+    restart: unless-stopped
+    environment:
+    - REDIS_HOSTS=local:redis:${REDIS_PORT:-6379}
+    ports:
+    - ${REDIS_COMMANDER_PORT:-8081}:8081
+    networks:
+        - pokeapi_net
+
+  prometheus:
+    image: prom/prometheus
+    container_name: pokeapi-prometheus
+    restart: unless-stopped
+    volumes:
+      - ${PROMETHEUS_CONF_FILE:-./containers/rabbitmq_redis/grafana/provisioning}:/etc/grafana/provisioning
+      - ${PROMETHEUS_DATA_DIR:-prometheus_data}:/prometheus
+    ports:
+      - ${PROMETHEUS_PORT:-9090}:9090
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - pokeapi_net
+
+  grafana:
+    image: grafana/grafana
+    container_name: pokeapi-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
+      GF_PATHS_CONFIG: /etc/grafana/grafana.ini
+      GF_PATHS_DATA: /var/lib/grafana
+      GF_PATHS_HOME: /usr/share/grafana
+      GF_PATHS_LOGS: /var/log/grafana
+      GF_PATHS_PLUGINS: /var/lib/grafana/plugins
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    ports:
+      - ${GRAFANA_WEB_PORT:-3000}:3000
+    volumes:
+      - ${GRAFANA_DATA_DIR:-grafana_data:/var/lib/grafana}
+      - ${GRAFANA_DASHBOARDS_DIR:-./containers/rabbitmq_redis/grafana/dashboards}:/var/lib/grafana/dashboards
+      - ${GRAFANA_PROVISIONING_DIR:-./containers/rabbitmq_redis/grafana/provisioning}:/etc/grafana/provisioning
+      - ${GRAFANA_INI_FILE:-./containers/rabbitmq_redis/grafana/grafana.ini}:/etc/grafana/grafana.ini
+    depends_on:
+      - prometheus
+    networks:
+      - pokeapi_net
