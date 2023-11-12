@@ -1,5 +1,9 @@
 # PokeAPI
 
+![PokeAPI logo](https://raw.githubusercontent.com/PokeAPI/media/master/logo/pokeapi_256.png "PokeAPI")
+
+*Disclaimer: This project is not associated with the PokeAPI site in any way.*
+
 Utilities & example apps to interact with the [Pokemon API](pokeapi.co/).
 
 ## Requirements
