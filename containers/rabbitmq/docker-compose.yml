@@ -1,0 +1,22 @@
+version: "3.8"
+
+# networks:
+#   rabbit_net:
+#     driver: bridge
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rabbitmq}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-rabbitmq}
+    ports:
+      ## AMQP protocol
+      - ${RABBITMQ_AMPQ_PORT:-5672}:5672
+      - ${RABBITMQ_HTTP_PORT:-15672}:15672
+    volumes:
+      - ${RABBITMQ_DATA_DIR:-./data}:/var/lib/rabbitmq
+      - ${RABBITMQ_LOGS_DIR:-./logs}:/var/log/rabbitmq
+    # networks:
+      # - rabbit_net

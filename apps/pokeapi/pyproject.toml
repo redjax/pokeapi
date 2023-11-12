@@ -12,6 +12,7 @@ dependencies = [
     "loguru>=0.7.2",
     "sqlalchemy>=2.0.23",
     "anyio>=4.0.0",
+    "celery>=5.3.5",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -23,3 +24,14 @@ dev = ["black>=23.10.1", "ruff>=0.1.3", "pytest>=7.4.3"]
 [tool.pdm.scripts]
 
 lint = { shell = "pdm run ruff check . --fix && pdm run black ." }
+
+######################
+# Export Requirement #
+######################
+
+#  Export production requirements
+export = { cmd = "pdm export --prod -o requirements.txt --without-hashes" }
+#  Export only development requirements
+export-dev = { cmd = "pdm export -d -o requirements.dev.txt --without-hashes" }
+## Uncomment if/when using a CI group
+# export-ci = {cmd = "pdm export -G ci -o requirements.ci.txt --without-hashes"}

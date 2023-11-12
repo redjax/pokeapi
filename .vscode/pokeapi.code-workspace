@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "..",
+			"name": "Project Root"
+		},
+		{
+			"path": "../containers/rabbitmq/",
+			"name": "RabbitMQ Container"
+		},
+		{
+			"path": "../containers/redis/",
+			"name": "Redis Container"
+		},
+		{
+			"path": "../apps/pokeapi/",
+			"name": "Pokeapi App"
+		}
+	]
+}
