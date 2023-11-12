@@ -15,11 +15,30 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from red_utils.ext.diskcache_utils import check_cache_key_exists, get_val, set_val
 from red_utils.ext.msgpack_utils import msgpack_serialize
 
-
 class APIPokemonResource(BaseModel):
+    """Class representation of a Pokemon resource from the Pokemon API.
+
+    PARAMS:
+    -------
+
+    * name (str): The Pokemon's name.
+    * request_url (str): The Pokemon API endpoint for this Pokemon.
+    * response (dict): Response from the Pokemon API endpoint. This value is empty until
+        .get() is ran.
+
+    Methods
+    -------
+    * .get(): Request Pokemon data from the Pokemon API. Optionally enable cachine by passing a diskcache.Cache object.
+
+    PROPERTIES:
+    -----------
+
+    * .serialized (bytes): Return a msgpack-serialized bytestring representation of Pokemon.
+    """
+
     name: str | None = Field(default=None)
     request_url: str | None = Field(default=None, alias="url")
-    response: dict = Field(default=None)
+    response: dict | None = Field(default=None)
 
     @property
     def serialized(self) -> bytes:
@@ -115,7 +134,36 @@ class APIPokemonResource(BaseModel):
 
 
 class APIAllPokemon(BaseModel):
-    """Requests all Pokemon from API by setting a high limit and 0 offset."""
+    """Class to store all Pokemon available from the Pokemon API.
+
+    DESCRIPTION:
+    ------------
+
+    Requests all Pokemon from API by setting a high limit and 0 offset. The response is
+    a list of dict values, containing a Pokemon's name and the URL to request the Pokemon's
+    data from the Pokemon API. These are converted to APIPokemonResource objects, and the data
+    can be retrieved using the APIPokemonResource's .get() method.
+
+    PARAMS:
+    -------
+
+    * url (str): URL to request all Pokemon from.
+    * params (dict[str, int]): Params to set request limit=100000, offset=0.
+        This is what facilitates returning all Pokemon from the /pokemon endpoint.
+    * pokemon_list (list[APIPokemonResource]): Variable containing all Pokemon responses.
+        This value is empty until .get_pokemon() is run.
+
+    PROPERTIES:
+    -----------
+
+    * names_list (list[str]): A list of all Pokemon name strings found in object's pokemon_list variable. List
+        will be empty until .get_pokemon() is run.
+
+    Methods
+    -------
+    * .get_pokemon(): Request all Pokemon resources and their URL from the Pokemon API, optionally caching requests if a
+        diskcache.Cache instance is passed to the function.
+    """
 
     url: str | None = Field(default=f"{api_settings.base_url}/pokemon")
     params: dict[str, int] | None = Field(default={"limit": 100000, "offset": 0})
@@ -123,6 +171,7 @@ class APIAllPokemon(BaseModel):
 
     @property
     def names_list(self) -> list[str]:
+        """List of all Pokemon names returned from the Pokemon API."""
         if self.pokemon_list is None:
             log.error(
                 "Pokemon list is empty. Run .get_pokemon() function to populate list, then try .names_list again."
@@ -140,6 +189,14 @@ class APIAllPokemon(BaseModel):
         use_cache: bool = False,
         cache: diskcache.Cache = None,
     ) -> dict[str, str]:
+        """Request all Pokemon resources from the Pokemon API.
+
+        PARAMS:
+        -------
+
+        * use_cache (bool): When True, enables caching if a diskcache.Cache instance is passed to the function.
+        * cache (discache.Cache): Provide a cache for storing responses from the Pokemon API.
+        """
         client = httpx.Client()
 
         if not use_cache:

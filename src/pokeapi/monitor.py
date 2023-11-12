@@ -1,12 +1,19 @@
+"""WIP:
+
+Monitor a file (i.e. the error.log file) for events or specific strings
+and react.
+"""
+from __future__ import annotations
+
 from pathlib import Path
-from threading import Thread, Event
-import time
 from queue import Queue
-from typing import Union, Callable
-from pydantic import BaseModel, Field, field_validator, FilePath, ValidationError
+from threading import Event, Thread
+import time
+
+from typing import Callable, Union
 
 from loguru import logger as log
-
+from pydantic import BaseModel, Field, FilePath, ValidationError, field_validator
 
 def detect_string_thread(
     detect: Union[str, list[str]], text_queue: Queue, line_ready: Event

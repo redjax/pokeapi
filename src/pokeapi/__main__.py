@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import sys
 
 sys.path.append(".")
 
 from loguru import logger as log
-from red_utils.ext.loguru_utils import init_logger, LoguruSinkStdErr
+from red_utils.ext.loguru_utils import LoguruSinkStdErr, init_logger
 
 sinks = [LoguruSinkStdErr().as_dict()]
 
