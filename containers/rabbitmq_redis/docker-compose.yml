@@ -7,6 +7,8 @@ version: "3.8"
 volumes:
   redis_cache:
     driver: local
+  prometheus_data:
+    driver: local
 
 services:
   rabbitmq:
@@ -45,3 +47,17 @@ services:
     - REDIS_HOSTS=local:redis:${REDIS_PORT:-6379}
     ports:
     - ${REDIS_COMMANDER_PORT:-8081}:8081
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ${PROMETHEUS_CONF_FILE:-./prometheus.yml}:/etc/prometheus/prometheus.yml
+      - ${PROMETHEUS_DATA_DIR:-prometheus_data}:/prometheus
+    ports:
+      - ${PROMETHEUS_PORT:-9090}:9090
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
