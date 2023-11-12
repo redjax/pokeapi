@@ -1,3 +1,8 @@
+"""This file is a constantly-changing testbed for pokeapi while it's under development.
+
+It should be removed when no longer needed.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -11,170 +16,74 @@ import random
 from typing import Union
 
 from pokeapi.core.conf import api_settings, app_settings
-from pokeapi.dependencies import get_request_client, loguru_sinks
-from pokeapi.domain.pokemon import PokemonNamesFile
+from pokeapi.dependencies import init_cache, loguru_sinks
+from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
 from pokeapi.utils.path_utils import ensure_dirs_exist
-
-import diskcache
-import httpx
+from pokeapi.utils.pokemon_utils import cache_all_pokemon
 
 from loguru import logger as log
+from red_utils.ext import msgpack_utils
 from red_utils.ext.diskcache_utils import (
     check_cache_key_exists,
-    default_cache_conf,
-    default_timeout_dict,
     get_val,
-    new_cache,
     set_val,
 )
 from red_utils.ext.loguru_utils import init_logger
-from red_utils.ext import msgpack_utils
-
-ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
-pokemon_names_file: Path = Path(f"{app_settings.data_dir}/list_all_pokemon.txt")
-
-
-def request_pokemon(
-    pokemon_name: str = None,
-    client: httpx.Client = None,
-    use_cache: bool = True,
-    cache: diskcache.Cache | None = None,
-) -> dict:
-    def _request(url=None, client=client) -> httpx.Response:
-        try:
-            with client as c:
-                res = c.get(url)
-
-                log.info(
-                    f"Request Pokemon: {pokemon_name}, response: [{res.status_code}: {res.reason_phrase}]"
-                )
-
-                return res
-
-        except Exception as exc:
-            raise Exception(
-                f"Unhandled exception requesting Pokemon: {pokemon_name}. Details: {exc}"
-            )
-
-    if client is None:
-        log.warning(
-            f"No request client was passed to the request_pokemon function. Initializing a new client."
-        )
-        client = httpx.Client()
-
-    if cache is None:
-        if use_cache is True:
-            raise ValueError("use_cache is set to True, but no cache object was passed")
-        else:
-            pass
-
-    log.info(f"Requesting Pokemon: {pokemon_name}")
-
-    req_url: str = f"{api_settings.base_url}/pokemon/{pokemon_name}"
-
-    if not use_cache:
-        log.info(f"Cache is disabled, making live request.")
-        res = _request(url=req_url)
-        log.debug(f"Response: [{res.status_code}: {res.reason_phrase}]")
-
-        if res.status_code == 200:
-            log.info(f"Success requesting Pokemon: {pokemon_name}")
-            content = json.loads(res.content.decode("utf-8"))
-
-            return content
-
-        else:
-            log.warning(
-                f"Non-200 status code in response: [{res.status_code}: {res.reason_phrase}] {res.text}"
-            )
-
-            return None
-
-    else:
-        log.info(f"Cache is enabled, attempting cached request")
-
-        if not check_cache_key_exists(cache=req_cache, key=pokemon_name):
-            log.warning("Did not find response in cache. Making live request.")
-
-            res = _request(url=req_url, client=client)
-
-            if res.status_code == 200:
-                content = json.loads(res.content.decode("utf-8"))
-
-                set_val(
-                    cache=req_cache,
-                    key=pokemon_name,
-                    val=content,
-                )
-
-                return content
-
-            else:
-                log.info(
-                    f"Non-200 success response: [{res.status_code}: {res.reason_phrase}]: {res.text}"
-                )
-
-                return None
-
-        else:
-            log.info("Found response in cache. Loading from cache.")
-
-            response: dict = get_val(cache=req_cache, key=pokemon_name)
-            # log.debug(f"Cached response: {response}")
-
-            return response
-
-
-def load_all_pokemon_names(
-    read_file: Union[str, Path] = pokemon_names_file
-) -> list[str]:
-    """Read all Pokemon names from pre-populated text file."""
-    if not read_file.exists():
-        raise FileNotFoundError(f"Could not find file: {read_file}")
-
-    names: list[str] = []
-
-    try:
-        with open(read_file, "r") as names_file:
-            lines = names_file.readlines()
-
-            for line in lines:
-                names.append(line.strip("\n").lower())
-
-        log.debug(f"Read [{len(names)}] Pokemon name(s) from file [{read_file}]")
-
-        return names
-
-    except Exception as exc:
-        raise Exception(
-            f"Unhandled exception reading Pokemon names from file: [{read_file}]. Details: {exc}"
-        )
-
+from red_utils.ext.msgpack_utils import (
+    msgpack_deserialize,
+    msgpack_deserialize_file,
+    msgpack_serialize,
+    msgpack_serialize_file,
+)
 
 if __name__ == "__main__":
+    ## Ensure directory paths exist before starting app
+    ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
+    ## Initialize Loguru logger
     init_logger(sinks=loguru_sinks)
-    req_cache_conf = default_cache_conf
-    req_cache_conf["directory"] = f"{app_settings.cache_dir}/requests"
-    req_cache = new_cache(cache_conf=default_cache_conf)
 
-    # client = httpx.Client()
-    client: httpx.Client = get_request_client()
+    ## Create caches
+    req_cache = init_cache("requests")
+    app_cache = init_cache("app")
 
-    pokemon_names_file: PokemonNamesFile = PokemonNamesFile()
-    pokemon_names_file.read_from_file()
-    log.debug(f"Found [{len(pokemon_names_file.names_list)}] Pokemon name(s)")
+    ## Initialize APIAllPokemon class. This class stores a list of resources (classes with
+    #  name/URL pairs and a .get() function to retrieve)
+    all_pokemon: APIAllPokemon = APIAllPokemon()
+    ## Retrieve all pokemon, using cached responses if available
+    all_pokemon.get_pokemon(use_cache=True, cache=req_cache)
 
-    pokemon_responses: list[dict] = []
+    ## Select a random pokemon from the list of all pokemon
+    rand_index = random.randint(0, len(all_pokemon.pokemon_list))
+    sample_pokemon: APIPokemonResource = all_pokemon.pokemon_list[rand_index]
+    log.debug(f"Sample Pokemon: {sample_pokemon}")
 
-    for name in pokemon_names_file.names_list:
-        res = request_pokemon(pokemon_name=name, cache=req_cache)
-        pokemon_responses.append(res)
+    ## Request Pokemon from the pokemon API. Uses cached response if available
+    sample_pokemon.get(use_cache=True, cache=req_cache)
+    log.debug(f"Sample Pokemon response ({type(sample_pokemon.response)})")
 
-    log.info(f"Got [{len(pokemon_responses)}] Pokemon response(s)")
-    if len(pokemon_responses) > 0:
-        rand_index = random.randint(0, len(pokemon_responses))
+    if not check_cache_key_exists(cache=app_cache, key="all_pokemon"):
+        ## All pokemon response was not cached. Serialize the response and cache it
+        log.warning(f"Did not find cache_key 'all_pokemon' in cache. Saving.")
 
-        sample_response = pokemon_responses[rand_index]
-        log.debug(
-            f"Random response sample ({type(sample_response)}): {sample_response}"
-        )
+        ## Serialize value
+        all_pokemon_serialized = msgpack_serialize(
+            _json=all_pokemon.model_dump_json()
+        ).detail
+
+        ## Cache value
+        set_val(cache=app_cache, key="all_pokemon", val=all_pokemon_serialized)
+
+    else:
+        ## All pokemon response was found in cache. Deserialize cached & response
+        log.debug(f"Found cache_key 'all_pokemon' in cache. Loading from cache.")
+
+        ## Load value from cache
+        all_pokemon_serialized = get_val(cache=app_cache, key="all_pokemon")
+
+    log.debug(f"All pokemon serialized ({type(all_pokemon_serialized)})")
+    log.debug(
+        f"All pokemon deserialized ({type(msgpack_deserialize(all_pokemon_serialized))})"
+    )
+
+    ## Make requests for all Pokemon resources in all_pokemon.pokemon_list. Use cached values, if available
+    # cache_all_pokemon(all_pokemon.pokemon_list, use_cache=True, cache=req_cache)

@@ -7,7 +7,6 @@ from dynaconf import settings
 from pydantic import Field, ValidationError, field_validator
 from pydantic_settings import BaseSettings
 
-
 class Settings(BaseSettings):
     env: str | None = Field(default=settings.ENV or "prod", env="ENV")
     container_env: bool | None = Field(

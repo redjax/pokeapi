@@ -5,7 +5,6 @@ from typing import Union
 
 from loguru import logger as log
 
-
 def ensure_dirs_exist(dirs: list[Union[str, Path]] = None) -> None:
     """Loop over list of dir strings/paths. Create directories that do not exist."""
     if dirs is None:
