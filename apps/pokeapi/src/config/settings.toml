@@ -16,6 +16,9 @@ rabbitmq_user = "guest"
 ## Set password in config/.secrets.toml
 # rabbitmq_pass = ""
 
+redis_host = "localhost"
+redis_port = 6379
+
 [dev]
 
 env = "dev"
@@ -30,5 +33,8 @@ rabbitmq_port = 5672
 rabbitmq_user = "rabbitmq"
 ## Set password in config/.secrets.toml
 # rabbitmq_pass = ""
+
+redis_host = "localhost"
+redis_port = 6379
 
 [prod]

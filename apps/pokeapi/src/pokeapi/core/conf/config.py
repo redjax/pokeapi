@@ -47,3 +47,9 @@ class CelerySettings(BaseSettings):
     rabbitmq_password: str | None = Field(
         default=settings.RABBITMQ_PASS or None, env="RABBITMQ_PASS"
     )
+    redis_host: str | None = Field(
+        default=settings.REDIS_HOST or None, env="REDIS_HOST"
+    )
+    redis_port: int | None = Field(
+        default=settings.REDIS_PORT or None, env="REDIS_PORT"
+    )

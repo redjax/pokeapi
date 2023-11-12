@@ -32,7 +32,7 @@ def check_task(task_id: str | None = None) -> AsyncResult:
 
     task = AsyncResult(task_id)
 
-    log.debug(f"Task ID [{task_id}] state: {task.state}")
+    # log.debug(f"Task ID [{task_id}] state: {task.state}")
 
     return task.state, task.result
 
@@ -76,17 +76,7 @@ def run_all_pokemon_refresh(
             time.sleep(task_sleep)
 
 
-if __name__ == "__main__":
-    ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
-    init_logger(sinks=loguru_sinks)
-
-    req_cache = init_cache("requests")
-    app_cache = init_cache("app")
-
-    log.info("Starting background cache refresh tasks")
-
-    all_pokemon: APIAllPokemon = run_all_pokemon_refresh(task_sleep=5)
-
+def loop_refresh_pokemon_resources(all_pokemon: APIAllPokemon = None):
     all_pokemon_list: list[APIPokemonResource] = all_pokemon.pokemon_list
     log.debug(f"Refreshing [{len(all_pokemon_list)}] Pokemon...")
 
@@ -105,27 +95,57 @@ if __name__ == "__main__":
 
         refresh_pokemon_tasks.append(refresh_pokemon_res)
 
-    rand_refresh_task_index: int = random.randint(0, len(refresh_pokemon_tasks) - 1)
-    sample_task: AsyncResult = refresh_pokemon_tasks[rand_refresh_task_index]
+    return_pokemon: list[APIPokemonResource] = []
 
-    while True:
-        refresh_pokemon_state, result = check_task(sample_task.id)
-        log.debug(f"Task [{sample_task.id}] refreshed state: {refresh_pokemon_state}")
+    for refresh_task in refresh_pokemon_tasks:
+        task_id: int = refresh_task.id
+        log.debug(f"Working on task [{task_id}]")
 
-        if refresh_pokemon_state == "SUCCESS":
-            # log.debug(f"Result: {result}")
-            refresh_pokemon_res = APIPokemonResource.model_validate(result)
-            log.info(f"Refresh Pokemon resource task completed successfully!")
-
-            # return all_pokemon_res
-            break
-        elif refresh_pokemon_state in ("FAILURE", "REVOKED"):
-            log.error(
-                f"Task [{sample_task.id}] failed or revoked. State: {refresh_pokemon_state}."
+        while True:
+            refresh_pokemon_state, result = check_task(refresh_task.id)
+            log.debug(
+                f"Task [{refresh_task.id}] refreshed state: {refresh_pokemon_state}"
             )
-            break
-        else:
-            log.info(
-                f"Task [{sample_task.id}] is still in progress. Waiting for 5 second(s)..."
-            )
-            time.sleep(5)
+
+            if refresh_pokemon_state == "SUCCESS":
+                # log.debug(f"Result: {result}")
+                refresh_pokemon_res = APIPokemonResource.model_validate(result)
+                log.info(f"Refresh Pokemon resource task completed successfully!")
+
+                return_pokemon.append(refresh_pokemon_res)
+                break
+
+            elif refresh_pokemon_state in ("FAILURE", "REVOKED"):
+                log.error(
+                    f"Task [{refresh_task.id}] failed or revoked. State: {refresh_pokemon_state}."
+                )
+                break
+            else:
+                log.info(
+                    f"Task [{refresh_task.id}] is still in progress. Waiting for 5 second(s)..."
+                )
+                time.sleep(5)
+
+    return return_pokemon
+
+
+if __name__ == "__main__":
+    ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
+    init_logger(sinks=loguru_sinks)
+
+    req_cache = init_cache("requests")
+    app_cache = init_cache("app")
+
+    log.info("Starting background cache refresh tasks")
+
+    all_pokemon: APIAllPokemon = run_all_pokemon_refresh(task_sleep=5)
+    refreshed_pokemon: list[APIPokemonResource] = loop_refresh_pokemon_resources(
+        all_pokemon=all_pokemon
+    )
+    log.debug(f"Refreshed [{len(refreshed_pokemon)}]")
+
+    if len(refreshed_pokemon) > 0:
+        rand_index: int = random.randint(0, len(refreshed_pokemon) - 1)
+        refreshed: APIPokemonResource = refreshed_pokemon[rand_index]
+
+        log.debug(f"(Sample) Refreshed Pokemon [{refreshed.name}]")

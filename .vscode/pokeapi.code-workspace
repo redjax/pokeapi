@@ -5,12 +5,8 @@
 			"name": "Project Root"
 		},
 		{
-			"path": "../containers/rabbitmq/",
-			"name": "RabbitMQ Container"
-		},
-		{
-			"path": "../containers/redis/",
-			"name": "Redis Container"
+			"path": "../containers/rabbitmq_redis/",
+			"name": "RabbitMQ+Redis Container"
 		},
 		{
 			"path": "../apps/pokeapi/",
