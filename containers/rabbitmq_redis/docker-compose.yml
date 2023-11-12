@@ -9,6 +9,8 @@ volumes:
     driver: local
   prometheus_data:
     driver: local
+  grafana_data:
+    driver: local
 
 services:
   rabbitmq:
@@ -61,3 +63,16 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
+    ports:
+      - ${GRAFANA_WEB_PORT:-3000}:3000
+    volumes:
+      - ${GRAFANA_DATA_DIR:-grafana_data:/var/lib/grafana}
+    depends_on:
+      - prometheus
