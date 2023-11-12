@@ -8,9 +8,32 @@ from pydantic import BaseModel, Field, field_validator, FilePath, ValidationErro
 from loguru import logger as log
 
 
+def detect_string_thread(
+    detect: Union[str, list[str]], text_queue: Queue, line_ready: Event
+):
+    detect = [detect] if isinstance(detect, str) else detect
+    try:
+        print(f"Monitoring text stream for string(s): {detect}...")
+
+        while True:
+            # Wait for a line to be ready
+            line_ready.wait()
+
+            line, line_number = text_queue.get()
+            for detect_str in detect:
+                if detect_str.lower() in line.lower():
+                    print(
+                        f"String '{detect_str}' detected on line {line_number}: {line.strip()}"
+                    )
+
+    except Exception as exc:
+        raise Exception(f"Error in detect_string_multi_thread. Details: {exc}")
+
+
 class TailFile(BaseModel):
     read_file: Union[str, Path] | None = Field(default=None)
-    text_queue: Queue | None = Field(default=None)
+    text_queue: Queue | None = Field(default_factory=Queue)
+    line_ready: Event | None = Field(default_factory=Event)
 
     @field_validator("read_file")
     def validate_read_file(cls, v) -> Path:
@@ -47,19 +70,6 @@ class TailFile(BaseModel):
             print(f"Error reading file: {e}")
 
 
-def detect_error_thread(text_queue: Queue, line_ready: Event):
-    while True:
-        # Wait for a line to be ready
-        line_ready.wait()
-
-        line, line_number = text_queue.get()
-        if "error" in line.lower():
-            print(f"Error detected on line {line_number}: {line}")
-
-        # Clear the event flag for the next iteration
-        line_ready.clear()
-
-
 # Example usage
 if __name__ == "__main__":
     tail_file = TailFile(read_file="test.txt", text_queue=Queue())
@@ -70,5 +80,11 @@ if __name__ == "__main__":
     # Start the file reading thread using the tail method
     tail_file.start_thread(tail_file.tail, line_ready)
 
-    # Simulate another thread that processes the text stream
-    tail_file.start_thread(detect_error_thread, tail_file.text_queue, line_ready)
+    ## Simulate another thread that processes the text stream
+
+    tail_file.start_thread(
+        detect_string_thread,
+        ["error", "test", "testing"],
+        tail_file.text_queue,
+        line_ready,
+    )
