@@ -55,7 +55,7 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ${PROMETHEUS_CONF_FILE:-./prometheus.yml}:/etc/prometheus/prometheus.yml
+      - ${PROMETHEUS_CONF_FILE:-./grafana/provisioning}:/etc/grafana/provisioning
       - ${PROMETHEUS_DATA_DIR:-prometheus_data}:/prometheus
     ports:
       - ${PROMETHEUS_PORT:-9090}:9090
@@ -70,9 +70,18 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
+      GF_PATHS_CONFIG: /etc/grafana/grafana.ini
+      GF_PATHS_DATA: /var/lib/grafana
+      GF_PATHS_HOME: /usr/share/grafana
+      GF_PATHS_LOGS: /var/log/grafana
+      GF_PATHS_PLUGINS: /var/lib/grafana/plugins
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
     ports:
       - ${GRAFANA_WEB_PORT:-3000}:3000
     volumes:
       - ${GRAFANA_DATA_DIR:-grafana_data:/var/lib/grafana}
+      - ${GRAFANA_DASHBOARDS_DIR:-./grafana/dashboards}:/var/lib/grafana/dashboards
+      - ${GRAFANA_PROVISIONING_DIR:-./grafana/provisioning}:/etc/grafana/provisioning
+      - ${GRAFANA_INI_FILE:-./grafana/grafana.ini}:/etc/grafana/grafana.ini
     depends_on:
       - prometheus
