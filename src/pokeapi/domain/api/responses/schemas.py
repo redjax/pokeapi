@@ -48,7 +48,7 @@ class APIPokemonResource(BaseModel):
 
                 use_cache = False
 
-        cache_key: str = self.name
+        cache_key: str = str(self.name)
 
         client = httpx.Client()
 
@@ -120,6 +120,20 @@ class APIAllPokemon(BaseModel):
     url: str | None = Field(default=f"{api_settings.base_url}/pokemon")
     params: dict[str, int] | None = Field(default={"limit": 100000, "offset": 0})
     pokemon_list: list[APIPokemonResource] | None = Field(default=None)
+
+    @property
+    def names_list(self) -> list[str]:
+        if self.pokemon_list is None:
+            log.error(
+                "Pokemon list is empty. Run .get_pokemon() function to populate list, then try .names_list again."
+            )
+
+        names: list[str] = []
+
+        for pk in self.pokemon_list:
+            names.append(pk.name)
+
+        return names
 
     def get_pokemon(
         self,
