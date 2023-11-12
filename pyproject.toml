@@ -1,0 +1,26 @@
+[project]
+name = ""
+version = ""
+description = ""
+authors = [{ name = "redjax", email = "none@none.com" }]
+dependencies = []
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+
+[tool.pdm.dev-dependencies]
+dev = ["black>=23.11.0", "ruff>=0.1.5", "pre-commit>=3.5.0"]
+
+[tool.pdm.scripts]
+
+lint = { shell = "pdm run ruff check . --fix && pdm run black ." }
+
+start-rabbitmq = { shell = "cd containers/rabbitmq && docker compose up -d" }
+stop-rabbitmq = { shell = "cd containers/rabbitmq && docker compose down" }
+restart-rabbitmq = { shell = "cd containers/rabbitmq && docker compose down && docker compose up -d" }
+update-rabbitmq = { shell = "cd containers/rabbitmq && docker compose pull && docker compose down && docker compose up -d" }
+
+start-redis = { shell = "cd containers/redis && docker compose up -d" }
+stop-redis = { shell = "cd containers/redis && docker compose down" }
+restart-redis = { shell = "cd containers/redis && docker compose down && docker compose up -d" }
+update-redis = { shell = "cd containers/redis && docker compose pull && docker compose down && docker compose up -d" }

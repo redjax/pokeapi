@@ -7,6 +7,7 @@ from dynaconf import settings
 from pydantic import Field, ValidationError, field_validator
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     env: str | None = Field(default=settings.ENV or "prod", env="ENV")
     container_env: bool | None = Field(
@@ -31,3 +32,18 @@ class Settings(BaseSettings):
 
 class APISettings(BaseSettings):
     base_url: str | None = Field(default=settings.API_BASE_URL or None)
+
+
+class CelerySettings(BaseSettings):
+    rabbitmq_host: str | None = Field(
+        default=settings.RABBITMQ_HOST or None, env="RABBITMQ_HOST"
+    )
+    rabbitmq_port: int | None = Field(
+        default=settings.RABBITMQ_PORT or None, env="RABBITMQ_PORT"
+    )
+    rabbitmq_user: str | None = Field(
+        default=settings.RABBITMQ_USER or None, env="RABBITMQ_USER"
+    )
+    rabbitmq_password: str | None = Field(
+        default=settings.RABBITMQ_PASS or None, env="RABBITMQ_PASS"
+    )

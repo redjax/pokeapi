@@ -1,0 +1,131 @@
+import sys
+
+sys.path.append(".")
+
+from pokeapi.core.conf import app_settings, celery_settings
+from pokeapi.dependencies import init_cache, loguru_sinks
+from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
+from pokeapi.domain.enums.celery_enums import CeleryTaskState
+from pokeapi.utils.path_utils import ensure_dirs_exist
+from pokeapi.utils.pokemon_utils import cache_all_pokemon
+
+from loguru import logger as log
+import diskcache
+
+from red_utils.ext.diskcache_utils import check_cache_key_exists, get_val, set_val
+from red_utils.ext.loguru_utils import init_logger
+
+from pokeapi.celery_tasks import refresh_all_pokemon, refresh_single_pokemon
+from pokeapi.celeryapp import app as celery_app
+from celery.result import AsyncResult
+
+import random
+
+from dynaconf import settings
+
+import time
+
+
+def check_task(task_id: str | None = None) -> AsyncResult:
+    if task_id is None:
+        raise ValueError("Missing task_id to check.")
+
+    task = AsyncResult(task_id)
+
+    log.debug(f"Task ID [{task_id}] state: {task.state}")
+
+    return task.state, task.result
+
+
+def run_all_pokemon_refresh(
+    all_pokemon: APIAllPokemon = APIAllPokemon(),
+    task_sleep: int = 10,
+) -> None:
+    log.info("Refreshing cache of all Pokemon resources")
+
+    try:
+        all_pokemon_res: AsyncResult = refresh_all_pokemon.delay(
+            all_pokemon_dict=all_pokemon.model_dump()
+        )
+    except Exception as exc:
+        msg = Exception(
+            f"Unhandled exception running Celery task, refresh_all_pokemon(). Details: {exc}"
+        )
+        log.error(msg)
+
+    while True:
+        all_pokemon_state, result = check_task(all_pokemon_res.id)
+        log.debug(f"Refreshed state: {all_pokemon_state}")
+
+        if all_pokemon_state == "SUCCESS":
+            # log.debug(f"Result: {result}")
+            all_pokemon_res = APIAllPokemon.model_validate(result)
+            log.info("Refresh all Pokemon resources task completed successfully!")
+
+            return all_pokemon_res
+            break
+        elif all_pokemon_state in ("FAILURE", "REVOKED"):
+            log.error(
+                f"Task [{all_pokemon_res.id}] failed or revoked. State: {all_pokemon_state}."
+            )
+            break
+        else:
+            log.info(
+                f"Task [{all_pokemon_res.id}] is still in progress. Waiting for {task_sleep} second(s)..."
+            )
+            time.sleep(task_sleep)
+
+
+if __name__ == "__main__":
+    ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
+    init_logger(sinks=loguru_sinks)
+
+    req_cache = init_cache("requests")
+    app_cache = init_cache("app")
+
+    log.info("Starting background cache refresh tasks")
+
+    all_pokemon: APIAllPokemon = run_all_pokemon_refresh(task_sleep=5)
+
+    all_pokemon_list: list[APIPokemonResource] = all_pokemon.pokemon_list
+    log.debug(f"Refreshing [{len(all_pokemon_list)}] Pokemon...")
+
+    refresh_pokemon_tasks: list[AsyncResult] = []
+
+    for p in all_pokemon_list:
+        try:
+            refresh_pokemon_res: AsyncResult = refresh_single_pokemon.delay(
+                pokemon_dict=p.model_dump()
+            )
+        except Exception as exc:
+            msg = Exception(
+                f"Unhandled exception running Celery task, refresh_all_pokemon(). Details: {exc}"
+            )
+            log.error(msg)
+
+        refresh_pokemon_tasks.append(refresh_pokemon_res)
+
+    rand_refresh_task_index: int = random.randint(0, len(refresh_pokemon_tasks) - 1)
+    sample_task: AsyncResult = refresh_pokemon_tasks[rand_refresh_task_index]
+
+    while True:
+        refresh_pokemon_state, result = check_task(sample_task.id)
+        log.debug(f"Task [{sample_task.id}] refreshed state: {refresh_pokemon_state}")
+
+        if refresh_pokemon_state == "SUCCESS":
+            # log.debug(f"Result: {result}")
+            refresh_pokemon_res = APIPokemonResource.model_validate(result)
+            log.info(f"Refresh Pokemon resource task completed successfully!")
+
+            # return all_pokemon_res
+            break
+        elif refresh_pokemon_state in ("FAILURE", "REVOKED"):
+            log.error(
+                f"Task [{sample_task.id}] failed or revoked. State: {refresh_pokemon_state}."
+            )
+            break
+        else:
+            log.info(
+                f"Task [{sample_task.id}] is still in progress. Waiting for 5 second(s)..."
+            )
+            time.sleep(5)
