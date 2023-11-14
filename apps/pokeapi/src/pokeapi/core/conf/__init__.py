@@ -6,3 +6,5 @@ from .config import Settings, APISettings, CelerySettings
 app_settings = Settings()
 api_settings = APISettings()
 celery_settings = CelerySettings()
+
+print(f"Celery settings: {celery_settings}")

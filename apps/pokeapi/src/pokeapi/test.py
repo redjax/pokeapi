@@ -8,7 +8,7 @@ from pathlib import Path
 import random
 from typing import Union
 
-from pokeapi.core.conf import api_settings, app_settings, celery_settings
+from pokeapi.core.conf import api_settings, app_settings
 from pokeapi.dependencies import init_cache, loguru_sinks
 from pokeapi.utils.path_utils import ensure_dirs_exist
 from loguru import logger as log
@@ -29,7 +29,6 @@ if __name__ == "__main__":
 
     log.debug(f"App Settings: {app_settings}")
     log.debug(f"API Settings: {api_settings}")
-    log.debug(f"Celery Settings: {celery_settings}")
 
     ## Create caches
     # req_cache = init_cache("requests")

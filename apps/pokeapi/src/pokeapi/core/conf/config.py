@@ -35,21 +35,9 @@ class APISettings(BaseSettings):
 
 
 class CelerySettings(BaseSettings):
-    rabbitmq_host: str | None = Field(
-        default=settings.RABBITMQ_HOST or None, env="RABBITMQ_HOST"
-    )
-    rabbitmq_port: int | None = Field(
-        default=settings.RABBITMQ_PORT or None, env="RABBITMQ_PORT"
-    )
-    rabbitmq_user: str | None = Field(
-        default=settings.RABBITMQ_USER or None, env="RABBITMQ_USER"
-    )
-    rabbitmq_password: str | None = Field(
-        default=settings.RABBITMQ_PASS or None, env="RABBITMQ_PASS"
-    )
-    redis_host: str | None = Field(
-        default=settings.REDIS_HOST or None, env="REDIS_HOST"
-    )
-    redis_port: Union[str, int] | None = Field(
-        default=settings.REDIS_PORT or None, env="REDIS_PORT"
-    )
+    rabbitmq_host: str = Field(default=settings.RABBITMQ_HOST, env="RABBITMQ_HOST")
+    rabbitmq_port: int = Field(default=settings.RABBITMQ_PORT, env="RABBITMQ_PORT")
+    rabbitmq_user: str = Field(default=settings.RABBITMQ_USER, env="RABBITMQ_USER")
+    rabbitmq_password: str = Field(default=settings.RABBITMQ_PASS, env="RABBITMQ_PASS")
+    redis_host: str = Field(default=settings.REDIS_HOST, env="REDIS_HOST")
+    redis_port: int = Field(default=settings.REDIS_PORT, env="REDIS_PORT")

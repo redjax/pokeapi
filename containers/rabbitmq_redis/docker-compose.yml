@@ -15,24 +15,25 @@ volumes:
 services:
   rabbitmq:
     image: rabbitmq:management
-    container_name: rabbitmq
+    container_name: pokeapi-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rabbitmq}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-rabbitmq}
+      # RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-rabbitmq}
+      # RABBITMQ_ENABLED_PLUGINS_FILE: /etc/rabbitmq/enabled_plugins
     ports:
       ## AMQP protocol
-      - ${RABBITMQ_AMPQ_PORT:-5672}:5672
+      # - ${RABBITMQ_AMPQ_PORT:-5672}:5672
       - ${RABBITMQ_HTTP_PORT:-15672}:15672
     volumes:
       - ${RABBITMQ_DATA_DIR:-./data/rabbitmq}:/var/lib/rabbitmq
       - ${RABBITMQ_LOGS_DIR:-./logs/rabbitmq}:/var/log/rabbitmq
-      - ./rabbitmq.config:/etc/rabbitmq/rabbitmq.config
-    # networks:
-      # - rabbit_net
+      - ./provision/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+      - ./provision/rabbitmq/rabbitmq_enabled_plugins:/etc/rabbitmq/enabled_plugins
 
   redis:
     image: redis
-    container_name: crvrs-media-redis
+    container_name: pokeapi-redis
     restart: unless-stopped
     command: redis-server --save 20 1 --loglevel warning
     volumes:
@@ -42,7 +43,7 @@ services:
 
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: redis-commander
+    container_name: pokeapi-redis-commander
     hostname: redis-commander
     restart: unless-stopped
     environment:
@@ -52,10 +53,10 @@ services:
 
   prometheus:
     image: prom/prometheus
-    container_name: prometheus
+    container_name: pokeapi-prometheus
     restart: unless-stopped
     volumes:
-      - ${PROMETHEUS_CONF_FILE:-./grafana/provisioning}:/etc/grafana/provisioning
+      - ${PROMETHEUS_CONF_FILE:-./provision/prometheus/datasources.yml}:/etc/prometheus/prometheus.yml
       - ${PROMETHEUS_DATA_DIR:-prometheus_data}:/prometheus
     ports:
       - ${PROMETHEUS_PORT:-9090}:9090
@@ -63,10 +64,12 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
+    depends_on:
+      - rabbitmq
 
   grafana:
     image: grafana/grafana
-    container_name: grafana
+    container_name: pokeapi-grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
@@ -80,8 +83,9 @@ services:
       - ${GRAFANA_WEB_PORT:-3000}:3000
     volumes:
       - ${GRAFANA_DATA_DIR:-grafana_data:/var/lib/grafana}
-      - ${GRAFANA_DASHBOARDS_DIR:-./grafana/dashboards}:/var/lib/grafana/dashboards
-      - ${GRAFANA_PROVISIONING_DIR:-./grafana/provisioning}:/etc/grafana/provisioning
-      - ${GRAFANA_INI_FILE:-./grafana/grafana.ini}:/etc/grafana/grafana.ini
+      - ${GRAFANA_DASHBOARDS_DIR:-./provision/grafana/dashboards}:/var/lib/grafana/dashboards
+      - ${GRAFANA_PROVISIONING_DIR:-./provision/grafana/provisioning}:/etc/grafana/provisioning
+      - ${GRAFANA_INI_FILE:-./provision/grafana/grafana.ini}:/etc/grafana/grafana.ini
     depends_on:
       - prometheus
+      - rabbitmq
