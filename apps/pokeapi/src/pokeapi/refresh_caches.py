@@ -2,6 +2,7 @@ import sys
 
 sys.path.append(".")
 
+from core.constants import DATA_DIR, SERIALIZE_DIR, CACHE_DIR
 from core.conf import app_settings, celery_settings
 from pokeapi.dependencies import init_cache, loguru_sinks
 from domain.api.responses import APIAllPokemon, APIPokemonResource
@@ -137,7 +138,8 @@ def loop_refresh_pokemon_resources(all_pokemon: APIAllPokemon = None):
 
 if __name__ == "__main__":
     ensure_dirs_exist(
-        [app_settings.data_dir, app_settings.cache_dir, app_settings.serialize_dir]
+        # [app_settings.data_dir, app_settings.cache_dir, app_settings.serialize_dir]
+        [DATA_DIR, SERIALIZE_DIR, CACHE_DIR]
     )
     init_logger(sinks=loguru_sinks)
 
