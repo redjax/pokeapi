@@ -56,6 +56,8 @@ services:
       API_BASE_URL: ${API_BASE_URL:-https://pokeapi.co/api/v2}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       
+      DYNACONF_ALWAYS_LOAD_ENV_VARS: true
+
       RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
       RABBITMQ_USER: ${RABBITMQ_USER:-rabbitmq}
       RABBITMQ_PASS: ${RABBITMQ_PASS:-rabbitmq}
@@ -87,6 +89,8 @@ services:
       API_BASE_URL: ${API_BASE_URL:-https://pokeapi.co/api/v2}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       
+      DYNACONF_ALWAYS_LOAD_ENV_VARS: true
+
       RABBITMQ_USER: ${RABBITMQ_USER:-rabbitmq}
       RABBITMQ_PASS: ${RABBITMQ_PASS:-rabbitmq}
       RABBITMQ_PORT: ${RABBITMQ_AMPQ_PORT:-5672}
@@ -118,6 +122,11 @@ services:
       - ./containers/rabbitmq_redis/provision/rabbitmq/rabbitmq_enabled_plugins:/etc/rabbitmq/enabled_plugins
     networks:
       - pokeapi_net
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
   redis:
     image: redis
@@ -130,6 +139,11 @@ services:
     #   - ${REDIS_PORT:-6379}:6379
     networks:
       - pokeapi_net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
 
   redis-commander:
     image: rediscommander/redis-commander:latest

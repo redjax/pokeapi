@@ -144,7 +144,11 @@ if __name__ == "__main__":
     req_cache = init_cache("requests")
     app_cache = init_cache("app")
 
-    log.info("Starting background cache refresh tasks")
+    log.info(
+        f"[env:{app_settings.env}|container:{app_settings.container_env}] Starting background cache refresh tasks"
+    )
+
+    log.debug(f"Celery settings: {celery_settings}")
 
     if CONTINUUOUS:
         loop: bool = True

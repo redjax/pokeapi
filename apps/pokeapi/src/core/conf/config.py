@@ -38,23 +38,23 @@ class APISettings(BaseSettings):
 
 
 class CelerySettings(BaseSettings):
-    broker_host: str = Field(
-        default=settings.CELERY_BROKER_HOST, env="CELERY_BROKER_HOST"
+    broker_host: str | None = Field(
+        default=settings.CELERY_BROKER_HOST, env="RABBITMQ_HOST"
     )
-    broker_port: Union[str, int] = Field(
-        default=settings.CELERY_BROKER_PORT, env="CELERY_BROKER_PORT"
+    broker_port: Union[str, int] | None = Field(
+        default=settings.CELERY_BROKER_PORT, env="RABBITMQ_PORT"
     )
-    broker_user: str = Field(
-        default=settings.CELERY_BROKER_USER, env="CELERY_BROKER_USER"
+    broker_user: str | None = Field(
+        default=settings.CELERY_BROKER_USER, env="RABBITMQ_USER"
     )
-    broker_password: str = Field(
-        default=settings.CELERY_BROKER_PASS, env="CELERY_BROKER_PASS"
+    broker_password: str | None = Field(
+        default=settings.CELERY_BROKER_PASS, env="RABBITMQ_PASS"
     )
-    backend_host: str = Field(
-        default=settings.CELERY_BACKEND_HOST, env="CELERY_BACKEND_HOST"
+    backend_host: str | None = Field(
+        default=settings.CELERY_BACKEND_HOST, env="REDIS_HOST"
     )
-    backend_port: Union[str, int] = Field(
-        default=settings.CELERY_BACKEND_PORT, env="CELERY_BACKEND_PORT"
+    backend_port: Union[str, int] | None = Field(
+        default=settings.CELERY_BACKEND_PORT, env="REDIS_PORT"
     )
 
     @field_validator("broker_port", "backend_port")

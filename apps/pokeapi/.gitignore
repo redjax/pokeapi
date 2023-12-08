@@ -191,3 +191,4 @@ cython_debug/
 # *.ipynb
 
 .serialize
+src/config/*.bak

@@ -18,6 +18,8 @@ RUN pip install -r requirements.txt
 FROM build AS dev
 
 ENV ENV_FOR_DYNACONF=dev
+## Tell Dynaconf to always load from the environment first while in the container
+# ENV DYNACONF_ALWAYS_LOAD_ENV_VARS=True
 
 WORKDIR /app
 COPY ./src /app
@@ -29,6 +31,8 @@ COPY ./src /app
 FROM build AS prod
 
 ENV ENV_FOR_DYNACONF=prod
+## Tell Dynaconf to always load from the environment first while in the container
+# ENV DYNACONF_ALWAYS_LOAD_ENV_VARS=True
 
 WORKDIR /app
 COPY ./src/* .

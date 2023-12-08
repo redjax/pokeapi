@@ -10,14 +10,24 @@ log_level = "INFO"
 # Celery #
 ##########
 
-rabbitmq_host = "localhost"
-rabbitmq_port = 5672
-rabbitmq_user = "guest"
-## Set password in config/.secrets.toml
-# rabbitmq_pass = ""
+# rabbitmq_host = "localhost"
+# rabbitmq_port = 5672
+# rabbitmq_user = "guest"
+# ## Set password in config/.secrets.toml
+# # rabbitmq_pass = ""
 
-redis_host = "localhost"
-redis_port = 6379
+# redis_host = "localhost"
+# redis_port = 6379
+
+celery_broker_host = "localhost"
+celery_broker_port = 5672
+celery_broker_user = "guest"
+## Set password in config/.secrets.toml
+# celery_broker_pass = ""
+
+
+celery_backend_host = "localhost"
+celery_backend_port = 6379
 
 [dev]
 
@@ -28,13 +38,22 @@ log_level = "DEBUG"
 # Celery #
 ##########
 
-rabbitmq_host = "localhost"
-rabbitmq_port = 5672
-rabbitmq_user = "rabbitmq"
-## Set password in config/.secrets.toml
-# rabbitmq_pass = ""
+# rabbitmq_host = "localhost"
+# rabbitmq_port = 5672
+# rabbitmq_user = "rabbitmq"
+# ## Set password in config/.secrets.toml
+# # rabbitmq_pass = ""
 
-redis_host = "localhost"
-redis_port = 6379
+# redis_host = "localhost"
+# redis_port = 6379
+
+celery_broker_host = "localhost"
+celery_broker_port = 5672
+celery_broker_user = "rabbitmq"
+## Set password in config/.secrets.toml
+# celery_broker_pass = ""
+
+celery_backend_host = "localhost"
+celery_backend_port = 6379
 
 [prod]
