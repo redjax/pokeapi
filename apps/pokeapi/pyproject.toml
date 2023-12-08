@@ -30,8 +30,8 @@ lint = { shell = "pdm run ruff check . --fix && pdm run black ." }
 # Start Scripts #
 #################
 
-start-cache-refresh = { shell = "cd src && pdm run celery -A pokeapi.celeryapp worker --loglevel=info", env = { ENV_FOR_DYNACONF = "prod" } }
-start-cache-refresh-dev = { shell = "cd src && pdm run celery -A pokeapi.celeryapp worker --loglevel=debug", env = { ENV_FOR_DYNACONF = "dev" } }
+start-celery-worker = { shell = "cd src && pdm run celery -A pokeapi.celeryapp worker --loglevel=info", env = { ENV_FOR_DYNACONF = "prod" } }
+start-celery-worker-dev = { shell = "cd src && pdm run celery -A pokeapi.celeryapp worker --loglevel=debug", env = { ENV_FOR_DYNACONF = "dev" } }
 
 ######################
 # Export Requirement #

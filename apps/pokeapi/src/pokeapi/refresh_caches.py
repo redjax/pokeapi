@@ -2,10 +2,10 @@ import sys
 
 sys.path.append(".")
 
-from pokeapi.core.conf import app_settings, celery_settings
+from core.conf import app_settings, celery_settings
 from pokeapi.dependencies import init_cache, loguru_sinks
-from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
-from pokeapi.domain.enums.celery_enums import CeleryTaskState
+from domain.api.responses import APIAllPokemon, APIPokemonResource
+from domain.enums.celery_enums import CeleryTaskState
 from pokeapi.utils.path_utils import ensure_dirs_exist
 from pokeapi.utils.pokemon_utils import cache_all_pokemon
 
@@ -136,7 +136,9 @@ def loop_refresh_pokemon_resources(all_pokemon: APIAllPokemon = None):
 
 
 if __name__ == "__main__":
-    ensure_dirs_exist([app_settings.data_dir, app_settings.cache_dir])
+    ensure_dirs_exist(
+        [app_settings.data_dir, app_settings.cache_dir, app_settings.serialize_dir]
+    )
     init_logger(sinks=loguru_sinks)
 
     req_cache = init_cache("requests")

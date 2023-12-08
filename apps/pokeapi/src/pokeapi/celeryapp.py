@@ -1,15 +1,17 @@
 import sys
 
 sys.path.append(".")
-from pokeapi.core.conf import celery_settings
+from core.conf import celery_settings
 
 from celery import Celery
 
+BROKER = celery_settings.broker_url
+BACKEND = celery_settings.backend_url
+
 app = Celery(
     "pokeapi",
-    # broker=f"pyamqp://{celery_settings.rabbitmq_user}:{celery_settings.rabbitmq_password}@{celery_settings.rabbitmq_host}:{celery_settings.rabbitmq_port}//",
-    broker=f"amqp://{celery_settings.rabbitmq_user}:{celery_settings.rabbitmq_password}@rabbitmq",
-    backend=f"redis://{celery_settings.redis_host}:{celery_settings.redis_port}",
+    broker=BROKER,
+    backend=BACKEND,
     include=["pokeapi.celery_tasks"],
 )
 

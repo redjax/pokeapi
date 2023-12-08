@@ -4,9 +4,9 @@ import sys
 
 sys.path.append(".")
 
-from pokeapi.core.conf import api_settings, app_settings
+from core import api_settings, app_settings
 from pokeapi.dependencies import init_cache, loguru_sinks
-from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
+from domain.api.responses import APIAllPokemon, APIPokemonResource
 from pokeapi.utils.path_utils import ensure_dirs_exist
 from pokeapi.utils.pokemon_utils import cache_all_pokemon
 
@@ -28,3 +28,5 @@ if __name__ == "__main__":
     all_pokemon: APIAllPokemon = APIAllPokemon()
     ## Retrieve all pokemon, using cached responses if available
     all_pokemon.get_pokemon(use_cache=True, cache=req_cache)
+
+    log.debug(f"Retrieved [{len(all_pokemon.pokemon_list)}] Pokemon")

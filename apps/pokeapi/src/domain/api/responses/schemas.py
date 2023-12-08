@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Union
 
-from pokeapi.core.conf import api_settings
+from core.conf import api_settings
 
 import diskcache
 import httpx
@@ -14,6 +14,7 @@ from loguru import logger as log
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from red_utils.ext.diskcache_utils import check_cache_key_exists, get_val, set_val
 from red_utils.ext.msgpack_utils import msgpack_serialize
+
 
 class APIPokemonResource(BaseModel):
     """Class representation of a Pokemon resource from the Pokemon API.

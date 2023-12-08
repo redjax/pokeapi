@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pokeapi.core.conf import api_settings, app_settings
+from core.conf import api_settings, app_settings
 
 import diskcache
 import httpx

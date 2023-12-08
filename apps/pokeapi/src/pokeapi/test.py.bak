@@ -15,9 +15,9 @@ from pathlib import Path
 import random
 from typing import Union
 
-from pokeapi.core.conf import api_settings, app_settings
+from core.conf import api_settings, app_settings
 from pokeapi.dependencies import init_cache, loguru_sinks
-from pokeapi.domain.api.responses import APIAllPokemon, APIPokemonResource
+from domain.api.responses import APIAllPokemon, APIPokemonResource
 from pokeapi.utils.path_utils import ensure_dirs_exist
 from pokeapi.utils.pokemon_utils import cache_all_pokemon
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from pokeapi.domain.api.responses import APIPokemonResource
+from domain.api.responses import APIPokemonResource
 
 import diskcache
 
 from loguru import logger as log
+
 
 def cache_all_pokemon(
     pokemon_list: list[APIPokemonResource] = None,
